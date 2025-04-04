@@ -46,16 +46,13 @@ output_folder = r'D:\System\Videos\VideoProc_Converter_AI\vsl-label'
 
 # cv2.destroyAllWindows()
 
-
-def extract_hand_landmarks(video_path, label, output_dir):
+def extract_hand_landmarks(video_path, label, video_name, label_output_dir):
     # Khởi tạo MediaPipe Hands
     mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
-    mp_drawing = mp.solutions.drawing_utils
-
+    hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+    
     # Đọc video
     cap = cv2.VideoCapture(video_path)
-    frame_count = 0
     landmarks_data = []
 
     while cap.isOpened():
@@ -63,7 +60,6 @@ def extract_hand_landmarks(video_path, label, output_dir):
         if not ret:
             break
 
-        # Chuyển đổi ảnh sang RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
 
@@ -71,35 +67,47 @@ def extract_hand_landmarks(video_path, label, output_dir):
             for landmarks in results.multi_hand_landmarks:
                 frame_landmarks = []
                 for lm in landmarks.landmark:
-                    frame_landmarks.append((lm.x, lm.y, lm.z))  # Tọa độ 3D của từng landmark
+                    frame_landmarks.append((lm.x, lm.y, lm.z))
                 landmarks_data.append(frame_landmarks)
-
-        frame_count += 1
+        else:
+            # Thêm vector zero nếu không phát hiện tay
+            landmarks_data.append([(0, 0, 0)] * 21)
 
     cap.release()
 
-    # Lưu dữ liệu vào file .txt
-    txt_file_path = os.path.join(output_dir, f"{label}.txt")
+    # Tạo tên file dựa trên tên video (không cần thêm label vào tên file nữa vì đã có thư mục nhãn)
+    txt_file_path = os.path.join(label_output_dir, f"{video_name}.txt")
     with open(txt_file_path, 'w') as f:
         for frame_landmarks in landmarks_data:
             for lm in frame_landmarks:
-                f.write(f"{lm[0]} {lm[1]} {lm[2]}\n")  # Ghi tọa độ x, y, z vào file
-            f.write("\n")
+                f.write(f"{lm[0]} {lm[1]} {lm[2]}\n")
+            f.write("\n")  # Phân cách giữa các frame
 
 def process_videos(dataset_dir, output_dir):
-    # Duyệt qua từng folder trong dataset
+    # Tạo thư mục đầu ra chính nếu chưa tồn tại
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Duyệt qua các thư mục nhãn
     for label_folder in os.listdir(dataset_dir):
         label_path = os.path.join(dataset_dir, label_folder)
         if os.path.isdir(label_path):
-            # Duyệt qua các video trong folder
+            # Tạo thư mục con cho nhãn trong output_dir
+            label_output_dir = os.path.join(output_dir, label_folder)
+            if not os.path.exists(label_output_dir):
+                os.makedirs(label_output_dir)
+
+            # Duyệt qua các video trong thư mục nhãn
             for video in os.listdir(label_path):
                 if video.endswith(('.mp4', '.avi')):  # Kiểm tra định dạng video
                     video_path = os.path.join(label_path, video)
-                    extract_hand_landmarks(video_path, label_folder, output_dir)
+                    # Lấy tên video không có phần mở rộng
+                    video_name = os.path.splitext(video)[0]
+                    extract_hand_landmarks(video_path, label_folder, video_name, label_output_dir)
 
-# Thư mục chứa dataset của bạn
-dataset_dir =  r'D:\System\Videos\VideoProc_Converter_AI\vsl'
-# Thư mục nơi sẽ lưu các file .txt
-output_dir = r'D:\System\Videos\VideoProc_Converter_AI\extract_features'
+# Đường dẫn thư mục
+dataset_dir = r'D:\System\Videos\VideoProc_Converter_AI\vsl'
+output_dir = r'D:\System\Videos\VideoProc_Converter_AI\extract_features_ex'
 
+# Chạy chương trình
 process_videos(dataset_dir, output_dir)
