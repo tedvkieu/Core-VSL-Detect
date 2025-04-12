@@ -1,51 +1,7 @@
+# Đảm bảo import thư viện cần thiết
+import os
 import cv2
 import mediapipe as mp
-import os
-
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-# Đường dẫn tới folder chứa video
-video_folder = r'D:\System\Videos\VideoProc_Converter_AI\vsl'
-
-# Tạo thư mục lưu frame nếu chưa có
-output_folder = r'D:\System\Videos\VideoProc_Converter_AI\vsl-label'
-#Kiểm tra nếu thư mục output chưa tồn tại, tạo mới
-# if not os.path.exists(output_folder):
-#     os.makedirs(output_folder)
-
-# # Lặp qua từng thư mục nhãn trong bộ dữ liệu
-# for label_folder in os.listdir(video_folder):
-#     label_path = os.path.join(video_folder, label_folder)
-    
-#     if os.path.isdir(label_path):  # Kiểm tra nếu là thư mục (nhãn)
-#         # Tạo thư mục cho nhãn trong thư mục output nếu chưa có
-#         label_output_folder = os.path.join(output_folder, label_folder)
-#         if not os.path.exists(label_output_folder):
-#             os.makedirs(label_output_folder)
-
-#         # Lặp qua từng video trong thư mục nhãn
-#         for video_file in os.listdir(label_path):
-#             video_path = os.path.join(label_path, video_file)
-#             cap = cv2.VideoCapture(video_path)
-            
-#             # Kiểm tra nếu video mở thành công
-#             if not cap.isOpened():
-#                 print(f"Error opening video file: {video_path}")
-#                 continue
-
-#             frame_count = 0
-#             while cap.isOpened():
-#                 ret, frame = cap.read()
-#                 if not ret:
-#                     break
-#                 # Lưu frame dưới dạng ảnh vào thư mục nhãn trong folder_OP
-#                 frame_filename = f"{video_file}_frame_{frame_count}.jpg"
-#                 cv2.imwrite(os.path.join(label_output_folder, frame_filename), frame)
-#                 frame_count += 1
-
-#             cap.release()
-
-# cv2.destroyAllWindows()
-
 def extract_hand_landmarks(video_path, label, video_name, label_output_dir):
     # Khởi tạo MediaPipe Hands
     mp_hands = mp.solutions.hands
@@ -54,6 +10,7 @@ def extract_hand_landmarks(video_path, label, video_name, label_output_dir):
     # Đọc video
     cap = cv2.VideoCapture(video_path)
     landmarks_data = []
+    frame_index = 0
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -65,23 +22,24 @@ def extract_hand_landmarks(video_path, label, video_name, label_output_dir):
 
         if results.multi_hand_landmarks:
             for landmarks in results.multi_hand_landmarks:
-                frame_landmarks = []
-                for lm in landmarks.landmark:
-                    frame_landmarks.append((lm.x, lm.y, lm.z))
-                landmarks_data.append(frame_landmarks)
+                for idx, lm in enumerate(landmarks.landmark):
+                    # Lưu frame_index, landmark_index, x, y, z
+                    landmarks_data.append((frame_index, idx, lm.x, lm.y, lm.z))
         else:
             # Thêm vector zero nếu không phát hiện tay
-            landmarks_data.append([(0, 0, 0)] * 21)
+            for idx in range(21):  # MediaPipe hand có 21 điểm
+                landmarks_data.append((frame_index, idx, 0, 0, 0))
+
+        frame_index += 1
 
     cap.release()
 
-    # Tạo tên file dựa trên tên video (không cần thêm label vào tên file nữa vì đã có thư mục nhãn)
+    # Tạo tên file dựa trên tên video
     txt_file_path = os.path.join(label_output_dir, f"{video_name}.txt")
     with open(txt_file_path, 'w') as f:
-        for frame_landmarks in landmarks_data:
-            for lm in frame_landmarks:
-                f.write(f"{lm[0]} {lm[1]} {lm[2]}\n")
-            f.write("\n")  # Phân cách giữa các frame
+        for data in landmarks_data:
+            # Ghi ra dạng: frame_index landmark_index x y z
+            f.write(f"{data[0]} {data[1]} {data[2]} {data[3]} {data[4]}\n")
 
 def process_videos(dataset_dir, output_dir):
     # Tạo thư mục đầu ra chính nếu chưa tồn tại
@@ -103,11 +61,15 @@ def process_videos(dataset_dir, output_dir):
                     video_path = os.path.join(label_path, video)
                     # Lấy tên video không có phần mở rộng
                     video_name = os.path.splitext(video)[0]
+                    print(f"Đang xử lý video: {video} (nhãn: {label_folder})")
                     extract_hand_landmarks(video_path, label_folder, video_name, label_output_dir)
+                    print(f"Đã xử lý xong video: {video}")
 
 # Đường dẫn thư mục
 dataset_dir = r'D:\System\Videos\VideoProc_Converter_AI\vsl'
-output_dir = r'D:\System\Videos\VideoProc_Converter_AI\extract_features_ex'
+output_dir = r'D:\System\Videos\VideoProc_Converter_AI\extract_video'
+
+
 
 # Chạy chương trình
 process_videos(dataset_dir, output_dir)
