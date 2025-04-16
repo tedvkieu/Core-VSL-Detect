@@ -1,26 +1,44 @@
 import os
-import numpy as np
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-DATASET_DIR = r'D:\System\Videos\VideoProc_Converter_AI\data_maked'
-LABEL = "Cảm ơn"
+# Đường dẫn dữ liệu
+DATA_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data"
 
-label_path = os.path.join(DATASET_DIR, LABEL)
-invalid_files = []
+labels = []
+num_frames = []
 
-for file in os.listdir(label_path):
-    if file.endswith('.txt'):
-        file_path = os.path.join(label_path, file)
-        try:
-            df = pd.read_csv(file_path, header=None)
-            data = df.values  # (n_frames, 126)
-            left_hand = data[:, :63]
-            right_hand = data[:, 63:]
-            if np.all(left_hand == 0) or np.all(right_hand == 0):
-                invalid_files.append(file_path)
-        except Exception as e:
-            print(f"[ERROR] Không đọc được file {file_path}: {e}")
+for label in os.listdir(DATA_DIR):
+    label_dir = os.path.join(DATA_DIR, label)
+    if not os.path.isdir(label_dir):
+        continue
 
-print(f"Các file không hợp lệ cho nhãn {LABEL}: {len(invalid_files)}")
-for f in invalid_files[:5]:  # In 5 file đầu tiên
-    print(f" - {f}")
+    for file in os.listdir(label_dir):
+        if file.endswith('.csv'):
+            path = os.path.join(label_dir, file)
+            try:
+                df = pd.read_csv(path, header=None)
+                df = df.apply(pd.to_numeric, errors='coerce').dropna()
+                labels.append(label)
+                num_frames.append(len(df))
+            except Exception as e:
+                print(f"Lỗi đọc {file}: {e}")
+
+# 📌 1. Biểu đồ số mẫu mỗi nhãn
+plt.figure(figsize=(10, 5))
+sns.countplot(x=labels)
+plt.title("Số mẫu mỗi nhãn")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# 📌 2. Biểu đồ độ dài sample (số frame mỗi file)
+plt.figure(figsize=(10, 5))
+sns.histplot(num_frames, bins=20, kde=True)
+plt.title("Phân bố số frame mỗi file")
+plt.xlabel("Số frame")
+plt.ylabel("Số lượng file")
+plt.tight_layout()
+plt.show()
