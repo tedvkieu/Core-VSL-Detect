@@ -20,7 +20,7 @@ hands = mp_hands.Hands(static_image_mode=False,
 mp_draw = mp.solutions.drawing_utils
 
 # ====================
-SAVE_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data\Y"  # Thư mục lưu file
+SAVE_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data\R"  # Thư mục lưu file
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 collected = []
@@ -94,21 +94,21 @@ try:
                    
         # Hiển thị trạng thái thu thập
         status_color = (0, 255, 0) if recording else (0, 0, 255)
-        status_text = "ĐANG THU THẬP" if recording else "TẠM DỪNG" 
+        status_text = "Collecting" if recording else "Stop" 
         cv2.putText(frame, status_text, (w-200, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
         
         # Hiển thị phím tắt
-        cv2.putText(frame, "s: Bắt đầu/Dừng | a: Lưu | q: Thoát", (10, h-20), 
+        cv2.putText(frame, "s: Start/Stop | a: Save | q: Quit", (10, h-20), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-        cv2.imshow("Thu thập dữ liệu VSL", frame)
+        cv2.imshow("Make data VSL", frame)
         key = cv2.waitKey(1) & 0xFF
 
         # Xử lý phím tắt
         if key == ord('s'):  # Bắt đầu/dừng thu thập
             recording = not recording
-            status = "ĐANG THU THẬP" if recording else "TẠM DỪNG"
+            status = "Collecting" if recording else "Stop"
             print(f"Trạng thái thu thập: {status}")
         
         elif key == ord('a') and len(collected) > 0:

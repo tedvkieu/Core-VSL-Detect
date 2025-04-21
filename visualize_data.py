@@ -1,14 +1,12 @@
 import os
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-# Đường dẫn dữ liệu
+# Cấu hình thư mục chứa dữ liệu
 DATA_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data"
+min_frame = 30
+max_frame = 150
 
-labels = []
-num_frames = []
+deleted_files = []
 
 for label in os.listdir(DATA_DIR):
     label_dir = os.path.join(DATA_DIR, label)
@@ -16,29 +14,18 @@ for label in os.listdir(DATA_DIR):
         continue
 
     for file in os.listdir(label_dir):
-        if file.endswith('.csv'):
-            path = os.path.join(label_dir, file)
+        if file.endswith(".csv"):
+            file_path = os.path.join(label_dir, file)
             try:
-                df = pd.read_csv(path, header=None)
+                df = pd.read_csv(file_path, header=None)
                 df = df.apply(pd.to_numeric, errors='coerce').dropna()
-                labels.append(label)
-                num_frames.append(len(df))
+                frame_count = len(df)
+
+                if frame_count < min_frame or frame_count > max_frame:
+                    os.remove(file_path)
+                    deleted_files.append((label, file, frame_count))
+                    print(f"🗑️ Đã xoá {file} ({frame_count} frames) trong nhãn {label}")
             except Exception as e:
-                print(f"Lỗi đọc {file}: {e}")
+                print(f"❌ Lỗi khi xử lý {file}: {e}")
 
-# 📌 1. Biểu đồ số mẫu mỗi nhãn
-plt.figure(figsize=(10, 5))
-sns.countplot(x=labels)
-plt.title("Số mẫu mỗi nhãn")
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
-
-# 📌 2. Biểu đồ độ dài sample (số frame mỗi file)
-plt.figure(figsize=(10, 5))
-sns.histplot(num_frames, bins=20, kde=True)
-plt.title("Phân bố số frame mỗi file")
-plt.xlabel("Số frame")
-plt.ylabel("Số lượng file")
-plt.tight_layout()
-plt.show()
+print(f"\n✅ Đã xoá {len(deleted_files)} file không đạt yêu cầu.")

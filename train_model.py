@@ -5,11 +5,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from keras.utils import to_categorical
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout
+from keras.layers import LSTM, Dense, Dropout,BatchNormalization
+from keras.callbacks import EarlyStopping
 
 # Cấu hình
 DATA_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data"
-TIMESTEPS = 10  # Số frame liên tục
+TIMESTEPS = 20  # Số frame liên tục
 
 X, y = [], []
 
@@ -58,18 +59,34 @@ X_train, X_test, y_train, y_test = train_test_split(X, y_categorical, test_size=
 # Build model
 model = Sequential()
 model.add(LSTM(64, return_sequences=True, input_shape=(X.shape[1], X.shape[2])))
+model.add(BatchNormalization())
 model.add(Dropout(0.3))
 model.add(LSTM(64))
+model.add(BatchNormalization())
 model.add(Dropout(0.3))
 model.add(Dense(64, activation='relu'))
 model.add(Dense(y_categorical.shape[1], activation='softmax'))
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-# Train
-model.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_test, y_test))
+# 👇 Thêm bước compile tại đây
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# Callback để dừng sớm nếu không cải thiện
+early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
+# Train model
+model.fit(X_train, y_train, 
+          epochs=100, 
+          batch_size=32, 
+          validation_data=(X_test, y_test),
+          callbacks=[early_stop])
+
 
 # Save model và nhãn
-model.save("model.h5")
-np.save("labels.npy", label_encoder.classes_)
+model.save("model_20_4.h5")
+np.save("labels_20_4.npy", label_encoder.classes_)
 
 print("✅ Đã lưu model và nhãn:", label_encoder.classes_)
