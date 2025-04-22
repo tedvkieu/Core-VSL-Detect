@@ -86,7 +86,7 @@ model.fit(X_train, y_train,
 
 
 # Save model và nhãn
-model.save("model_20_4.h5")
-np.save("labels_20_4.npy", label_encoder.classes_)
+model.save("model_22_4.h5")
+np.save("labels_22_4.npy", label_encoder.classes_)
 
 print("✅ Đã lưu model và nhãn:", label_encoder.classes_)

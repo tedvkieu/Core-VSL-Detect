@@ -20,7 +20,7 @@ hands = mp_hands.Hands(static_image_mode=False,
 mp_draw = mp.solutions.drawing_utils
 
 # ====================
-SAVE_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data\R"  # Thư mục lưu file
+SAVE_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data\I"  # Thư mục lưu file
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 collected = []

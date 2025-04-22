@@ -5,8 +5,8 @@ from keras.models import load_model
 from PIL import ImageFont, ImageDraw, Image
 
 # Load model và label
-model = load_model("model_20_4.h5")
-labels = np.load("labels_20_4.npy")
+model = load_model("model_22_4.h5")
+labels = np.load("labels_22_4.npy")
 FONT_PATH = "ARIAL.TTF"
 font = ImageFont.truetype(FONT_PATH, 32)
 
@@ -53,11 +53,14 @@ try:
         results = hands.process(rgb)
         keypoints = extract_both_hands_landmarks(results)
 
+
+
         if any(k != 0 for k in keypoints):
             # Phát hiện tay -> bắt đầu thu frame
             sequence.append(keypoints)
             collecting = True
             hand_missing_counter = 0
+
         else:
             if collecting:
                 hand_missing_counter += 1
@@ -65,6 +68,7 @@ try:
                     # Tay biến mất -> thực hiện dự đoán ngay
                     if len(sequence) > 0:
                         input_data = np.expand_dims(sequence, axis=0)
+                        print("input_data:" , input_data)
                         prediction = model.predict(input_data, verbose=0)[0]
                         max_index = np.argmax(prediction)
                         max_label = labels[max_index]
