@@ -75,7 +75,7 @@ model.compile(
 )
 
 # Callback để dừng sớm nếu không cải thiện
-early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+early_stop = EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True)
 
 # Train model
 model.fit(X_train, y_train, 
@@ -86,7 +86,7 @@ model.fit(X_train, y_train,
 
 
 # Save model và nhãn
-model.save("model_22_4.h5")
-np.save("labels_22_4.npy", label_encoder.classes_)
+model.save("model_26_4.h5")
+np.save("labels_26_4.npy", label_encoder.classes_)
 
 print("✅ Đã lưu model và nhãn:", label_encoder.classes_)

@@ -3,10 +3,13 @@ import numpy as np
 import mediapipe as mp
 from keras.models import load_model
 from PIL import ImageFont, ImageDraw, Image
+import pandas as pd
+import os
+from datetime import datetime
 
 # Load model và label
-model = load_model("model_22_4.h5")
-labels = np.load("labels_22_4.npy")
+model = load_model("model_26_4.h5")
+labels = np.load("labels_26_4.npy")
 FONT_PATH = "ARIAL.TTF"
 font = ImageFont.truetype(FONT_PATH, 32)
 
@@ -29,6 +32,21 @@ def extract_both_hands_landmarks(results):
             else:
                 right_hand = coords
     return left_hand + right_hand
+
+def save_to_csv(sequence, prediction):
+    # Tạo tên file dựa trên thời gian hiện tại
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"hand_data_{timestamp}.csv"
+    
+    # Tạo DataFrame từ sequence
+    df = pd.DataFrame(sequence)
+    
+    # Thêm cột prediction
+    df['prediction'] = prediction
+    
+    # Lưu vào file CSV
+    df.to_csv(filename, index=False)
+    print(f"Đã lưu dữ liệu vào file: {filename}")
 
 sequence = []
 collecting = False
@@ -53,8 +71,6 @@ try:
         results = hands.process(rgb)
         keypoints = extract_both_hands_landmarks(results)
 
-
-
         if any(k != 0 for k in keypoints):
             # Phát hiện tay -> bắt đầu thu frame
             sequence.append(keypoints)
@@ -77,6 +93,8 @@ try:
                         print("Dự đoán:", max_label, "(", confidence, ")")
                         if confidence > 0.9 and max_label != "non-action":
                             last_prediction = max_label
+                            # Lưu dữ liệu vào CSV khi có dự đoán hợp lệ
+                            save_to_csv(sequence, max_label)
                         else:
                             last_prediction = ""
 

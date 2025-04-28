@@ -20,7 +20,7 @@ hands = mp_hands.Hands(static_image_mode=False,
 mp_draw = mp.solutions.drawing_utils
 
 # ====================
-SAVE_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data\I"  # Thư mục lưu file
+SAVE_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data\9"  # Thư mục lưu file
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 collected = []
@@ -54,6 +54,10 @@ try:
     
     while True:
         ret, frame = cap.read()
+
+        print("Width:", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        print("Height:", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
         if not ret:
             print("Không thể đọc từ webcam. Thoát...")
             break
