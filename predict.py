@@ -3,8 +3,8 @@ import numpy as np
 from keras.models import load_model
 
 # Load model và label chỉ 1 lần
-model = load_model("model_26_4.h5")
-labels = np.load("labels_26_4.npy")
+model = load_model("model_3_5.h5")
+labels = np.load("labels_3_5.npy")
 
 async def predict_sequence_from_frames(frames):
     # Đảm bảo frames hợp lệ
