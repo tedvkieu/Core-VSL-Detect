@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-DATA_DIR = r"D:\System\Videos\VideoProc_Converter_AI\make_data"
+DATA_DIR = r"D:\System\Videos\VideoProc_Converter_AI\data_maked"
 FIXED_LENGTH = 90
 
 for label in os.listdir(DATA_DIR):
