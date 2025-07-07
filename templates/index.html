@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSL Real-time Detection</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #222; 
+            color: #fff; 
+            text-align: center; 
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #video { 
+            width: 90vw; 
+            max-width: 640px; 
+            border-radius: 10px; 
+            margin: 20px 0;
+            border: 3px solid #0ff;
+        }
+        #result { 
+            font-size: 2em; 
+            margin: 20px 0; 
+            color: #0ff; 
+            min-height: 60px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button { 
+            padding: 15px 30px; 
+            font-size: 1.2em; 
+            border-radius: 8px; 
+            border: none; 
+            background: #0ff; 
+            color: #222; 
+            cursor: pointer; 
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            background: #0cc; 
+            transform: translateY(-2px);
+        }
+        button:disabled { 
+            background: #666; 
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            font-size: 1.1em;
+            color: #aaa;
+            margin: 10px 0;
+        }
+        .sequence-info {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VSL Real-time Detection</h1>
+        <video id="video" autoplay playsinline muted></video>
+        <div class="controls">
+            <button id="startBtn">Bắt đầu</button>
+            <button id="stopBtn" disabled>Dừng</button>
+        </div>
+        <div id="result">...</div>
+        <div class="status" id="status">Sẵn sàng</div>
+        <div class="sequence-info" id="sequenceInfo" style="display: none;">
+            <div>Frames thu thập: <span id="frameCount">0</span></div>
+            <div>Trạng thái: <span id="collectingStatus">Không thu thập</span></div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resultDiv = document.getElementById('result');
+        const statusDiv = document.getElementById('status');
+        const sequenceInfoDiv = document.getElementById('sequenceInfo');
+        const frameCountSpan = document.getElementById('frameCount');
+        const collectingStatusSpan = document.getElementById('collectingStatus');
+        
+        let streaming = false;
+        let sequence = [];
+        let collecting = false;
+        let hand_missing_counter = 0;
+        let intervalId = null;
+        let last_prediction = "";
+
+        async function setupCamera() {
+            try {
+                const constraints = {
+                    video: { 
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }, 
+                    audio: false 
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                statusDiv.textContent = "Camera đã sẵn sàng";
+            } catch (err) {
+                statusDiv.textContent = 'Không thể truy cập camera: ' + err;
+                console.error('Camera error:', err);
+            }
+        }
+
+        function captureFrame() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg', 0.8);
+        }
+
+        async function sendFrame() {
+            if (!streaming) return;
+            
+            const frame = captureFrame();
+            const response = await fetch('/detect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    frame, 
+                    sequence,
+                    collecting,
+                    hand_missing_counter
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                // Cập nhật trạng thái
+                sequence = data.sequence || [];
+                collecting = data.collecting || false;
+                hand_missing_counter = data.hand_missing_counter || 0;
+                
+                // Logic hiển thị giống test.py
+                if (data.prediction && data.prediction !== 'collecting' && data.prediction !== 'no_hands' && data.prediction !== 'unknown') {
+                    // Có dự đoán hợp lệ
+                    last_prediction = data.prediction;
+                    resultDiv.textContent = last_prediction;
+                    resultDiv.style.color = '#0f0';
+                } else if (data.prediction === 'no_hands') {
+                    resultDiv.textContent = 'Không phát hiện tay';
+                    resultDiv.style.color = '#f00';
+                } else if (data.prediction === 'collecting') {
+                    // Hiển thị kết quả cuối cùng nếu có, hoặc "Đang thu thập..."
+                    if (last_prediction) {
+                        resultDiv.textContent = last_prediction;
+                        resultDiv.style.color = '#0f0';
+                    } else {
+                        resultDiv.textContent = 'Đang thu thập dữ liệu...';
+                        resultDiv.style.color = '#0ff';
+                    }
+                } else if (data.prediction === 'unknown') {
+                    resultDiv.textContent = 'Không nhận diện được';
+                    resultDiv.style.color = '#ff0';
+                } else {
+                    // Hiển thị kết quả cuối cùng hoặc "..."
+                    if (last_prediction) {
+                        resultDiv.textContent = last_prediction;
+                        resultDiv.style.color = '#0f0';
+                    } else {
+                        resultDiv.textContent = '...';
+                        resultDiv.style.color = '#0ff';
+                    }
+                }
+                
+                // Cập nhật thông tin sequence
+                frameCountSpan.textContent = sequence.length;
+                if (collecting) {
+                    collectingStatusSpan.textContent = 'Đang thu thập';
+                    sequenceInfoDiv.style.display = 'inline-block';
+                } else {
+                    collectingStatusSpan.textContent = 'Không thu thập';
+                    if (sequence.length === 0) {
+                        sequenceInfoDiv.style.display = 'none';
+                    }
+                }
+                
+                // Hiển thị frame với hands nếu có
+                if (data.frame_with_hands) {
+                    // Tạo một canvas ẩn để hiển thị frame với hands
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        // Có thể hiển thị canvas này nếu muốn
+                    };
+                    img.src = data.frame_with_hands;
+                }
+                
+            } else {
+                resultDiv.textContent = 'Lỗi: ' + data.error;
+                resultDiv.style.color = '#f00';
+            }
+        }
+
+        startBtn.onclick = () => {
+            streaming = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            resultDiv.textContent = 'Đang khởi động...';
+            resultDiv.style.color = '#0ff';
+            statusDiv.textContent = 'Đang chạy';
+            sequence = [];
+            collecting = false;
+            hand_missing_counter = 0;
+            last_prediction = "";
+            intervalId = setInterval(sendFrame, 100); // 100ms ~ 10fps
+        };
+        
+        stopBtn.onclick = () => {
+            streaming = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            resultDiv.textContent = '...';
+            resultDiv.style.color = '#0ff';
+            statusDiv.textContent = 'Đã dừng';
+            clearInterval(intervalId);
+            sequence = [];
+            collecting = false;
+            hand_missing_counter = 0;
+            last_prediction = "";
+            sequenceInfoDiv.style.display = 'none';
+        };
+
+        // Khởi tạo camera khi trang load
+        setupCamera();
+    </script>
+</body>
+</html>

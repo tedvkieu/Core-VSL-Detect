@@ -3,7 +3,7 @@ import websockets
 import json
 import os
 import csv
-from predict import predict_sequence_from_frames
+from services.predict import predict_sequence_from_frames
 
 connected_clients = set()
 

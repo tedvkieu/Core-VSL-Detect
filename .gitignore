@@ -1,0 +1,19 @@
+# Thư mục ảo môi trường Python
+.venv/
+venv/
+
+# Cache biên dịch của Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Model hoặc checkpoint lớn (nếu có)
+*.h5
+*.keras
+*.npy
+*.ckpt
+
+# File hệ thống IDE (tuỳ chọn nếu dùng VSCode hoặc khác)
+.vscode/
+.idea/

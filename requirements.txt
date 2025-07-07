@@ -1,0 +1,9 @@
+tensorflow
+websockets
+asyncio
+numpy
+scipy
+pandas
+keras
+mediapipe
+opencv-python
